@@ -2,7 +2,7 @@
 Author: twjohnsontsai twjohnsontsai@icloud.com
 Date: 2023-03-27 12:00:07
 LastEditors: twjohnsontsai twjohnsontsai@icloud.com
-LastEditTime: 2023-04-01 00:54:40
+LastEditTime: 2023-04-01 10:12:19
 FilePath: /test/talk.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -21,7 +21,7 @@ predictor = dlib.shape_predictor(predictor_path)
 # 加载人脸检测器模型
 detector = dlib.get_frontal_face_detector()
 
-# 读取目标照片和视频
+# 读取目标照片和视频（档案名称固定，路径固定都在目录下）
 img = cv2.imread(os.path.join(base_path, "source.png"))
 cap = cv2.VideoCapture(os.path.join(base_path, "driving.mp4"))
 
