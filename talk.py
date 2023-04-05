@@ -2,7 +2,7 @@
 Author: twjohnsontsai twjohnsontsai@icloud.com
 Date: 2023-03-27 12:00:07
 LastEditors: twjohnsontsai twjohnsontsai@icloud.com
-LastEditTime: 2023-04-05 13:58:28
+LastEditTime: 2023-04-05 14:07:57
 FilePath: /talk/talk.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -15,8 +15,8 @@ detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
 # 读取照片和视频文件
-img = cv2.imread("input_image.jpg")
-cap = cv2.VideoCapture("input_video.mp4")
+img = cv2.imread("/Users/caijionghui/Desktop/test/source.png")
+cap = cv2.VideoCapture("/Users/caijionghui/Desktop/test/driving.mp4")
 
 # 定义五官交换的点
 mouth_points = list(range(48, 61))
