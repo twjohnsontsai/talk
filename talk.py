@@ -2,7 +2,7 @@
 Author: twjohnsontsai twjohnsontsai@icloud.com
 Date: 2023-03-27 12:00:07
 LastEditors: twjohnsontsai twjohnsontsai@icloud.com
-LastEditTime: 2023-04-05 14:34:01
+LastEditTime: 2023-04-05 15:04:16
 FilePath: /talk/talk.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -62,36 +62,23 @@ for rect in rects:
     nose_radius = int(np.linalg.norm(nose[4] - nose[0]))
     eye_radius = int(np.linalg.norm(left_eye[3] - left_eye[0]))
 
-# 循环遍历视频的每一帧
-while cap.isOpened():
-    ret, frame = cap.read()
+# 将图像转换为灰度图
+gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # 如果读取视频失败，则退出循环
-    if not ret:
-        break
+# 使用人脸检测器检测人脸
+rects = detector(gray_img, 0)
 
-    # 将图像转换为灰度图
-    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+# 循环遍历每一个人脸
+for rect in rects:
+    # 使用关键点检测器检测关键点
+    shape = predictor(gray_img, rect)
+    points = shape.parts()
 
-    # 使用人脸检测器检测人脸
-    rects = detector(gray_frame, 0)
+    # 将关键点转换为numpy数组
+    points = np.array([(p.x, p.y) for p in points])
+    # 省略代码......
 
-    # 循环遍历每一个人脸
-    for rect in rects:
-        # 使用关键点检测器检测关键点
-        shape = predictor(gray_frame, rect)
-        points = shape.parts()
-
-        # 将关键点转换为numpy数组
-        points = np.array([(p.x, p.y) for p in points])
-        # 省略代码......
-
-    # 将处理后的图像展示出来
-    cv2.imshow('result', frame)
-    # 按下 'q' 键退出循环
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-# 释放视频捕获器和所有窗口
-cap.release()
+# 将处理后的图像展示出来
+cv2.imshow('result', img)
+cv2.waitKey(0)
 cv2.destroyAllWindows()
