@@ -99,14 +99,14 @@ while cap.isOpened():
         eye_radius = int(np.linalg.norm(left_eye[3] - left_eye[0]))
 
     # 将每个五官的半径和中心点保存到一个列表中
-        radii = [mouth_radius, nose_radius, eye_radius]
-        features = [centers, radii]
+        face_radii = [mouth_radius, nose_radius, eye_radius]
+        face_features = [centers, radii]
 
     # 循环遍历每一个五官，进行交换
-    for i in range(len(features)):
+    for i in range(len(face_features)):
         # 获取要交换的五官
         feature1 = features[i]
-        feature2 = features[(i+1) % len(features)]
+        feature2 = features[(i+1) % len(face_features)]
 
         # 计算要交换的中心点和半径
         center1, center2 = feature1[0], feature2[0]
