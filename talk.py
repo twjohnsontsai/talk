@@ -1,158 +1,54 @@
-import dlib
 import cv2
 import numpy as np
-from imutils import face_utils
+import requests
+from io import BytesIO
+import torch
+import torch.backends.cudnn as cudnn
+from densepose import DensePosePredictor
 
+# 加载DensePose模型
+cudnn.benchmark = True
+dp = DensePosePredictor()
 
-# 加载人脸检测器和关键点检测器
-detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor(
-    "/Users/caijionghui/Desktop/test/shape_predictor_68_face_landmarks.dat")
+# 加载人像照片
+response = requests.get('/Users/caijionghui/Desktop/test/source12.png')
+img = cv2.imdecode(np.frombuffer(
+    BytesIO(response.content).read(), np.uint8), cv2.IMREAD_COLOR)
 
-# 读取照片和视频文件
-img = cv2.imread("/Users/caijionghui/Desktop/test/source.png")
-cap = cv2.VideoCapture("/Users/caijionghui/Desktop/test/driving.mp4")
+# 加载人像视频
+cap = cv2.VideoCapture('/Users/caijionghui/Desktop/test/driving.mp4')
 
-# 定义五官交换的点
-mouth_points = list(range(48, 61))
-nose_points = list(range(27, 36))
-left_eye_points = list(range(42, 48))
-right_eye_points = list(range(36, 42))
-jaw_points = list(range(0, 17))
+# 获取视频的宽和高
+width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-# 将照片转换为灰度图
-image = cv2.imread("/Users/caijionghui/Desktop/test/source.png")
-gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+# 创建视频编码器
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+out = cv2.VideoWriter('output_video.mp4', fourcc, 25.0, (width, height))
 
-# 使用人脸检测器检测人脸
-faces = detector(gray, 0)
-
-# 循环遍历每一个人脸
-for face in faces:
-        shape = predictor(gray, face)
-        points = shape.parts()
-
-    # 将关键点转换为numpy数组
-points = np.array([(p.x, p.y) for p in points])
-
-    # 分别提取五官的关键点
-mouth = points[mouth_points]
-nose = points[nose_points]
-left_eye = points[left_eye_points]
-right_eye = points[right_eye_points]
-jaw = points[jaw_points]
-
-    # 计算每个五官的中心点
-mouth_center = np.mean(mouth, axis=0)
-nose_center = np.mean(nose, axis=0)
-left_eye_center = np.mean(left_eye, axis=0)
-right_eye_center = np.mean(right_eye, axis=0)
-
-    # 将每个五官的中心点保存到一个列表中
-centers = [mouth_center, nose_center, left_eye_center, right_eye_center]
-
-    # 计算每个五官的半径
-mouth_radius = int(np.linalg.norm(mouth[6] - mouth[0]))
-nose_radius = int(np.linalg.norm(nose[4] - nose[0]))
-eye_radius = int(np.linalg.norm(left_eye[3] - left_eye[0]))
-
-# 循环遍历视频的每一帧
+# 循环处理视频的每一帧
 while cap.isOpened():
     ret, frame = cap.read()
-
-    # 如果读取视频失败，则退出循环
     if not ret:
         break
 
-    # 将图像转换为灰度图
-    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    # 运行DensePose模型，获取人像的部位和UV图
+    dp_out = dp.run_on_opencv_image(frame)
 
-    # 使用人脸检测器检测人脸
-    rects = detector(gray_frame, 0)
+    # 将照片中的人像部分提取出来，resize到和视频帧一样的大小
+    mask = np.zeros_like(dp_out['segms'][:, :, 0])
+    mask[dp_out['segms'][:, :, 0] == 1] = 1
+    y1, x1, y2, x2 = dp_out['rois'][0]
+    crop_img = cv2.resize(img[y1:y2, x1:x2], (x2-x1, y2-y1))
 
-    # 循环遍历每一个人脸
-    for rect in rects:
-        # 使用关键点检测器检测关键点
-        shape = predictor(gray_frame, rect)
-        points = shape.parts()
+    # 将照片中的人像部分替换到视频帧中
+    frame_masked = frame.copy()
+    frame_masked[mask == 1] = crop_img[mask == 1]
 
-    # 将关键点转换为numpy数组
-        points = np.array([(p.x, p.y) for p in points], dtype=np.int32)
+    # 将处理后的视频帧写入输出视频文件
+    out.write(frame_masked)
 
-    # 分别提取五官的关键点
-        mouth = points[mouth_points]
-        nose = points[nose_points]
-        left_eye = points[left_eye_points]
-        right_eye = points[right_eye_points]
-        jaw = points[jaw_points]
-
-    # 计算每个五官的中心点
-        mouth_center = np.mean(mouth, axis=0)
-        nose_center = np.mean(nose, axis=0)
-        left_eye_center = np.mean(left_eye, axis=0)
-        right_eye_center = np.mean(right_eye, axis=0)
-
-    # 将每个五官的中心点保存到一个列表中
-        centers = [mouth_center, nose_center, left_eye_center, right_eye_center]
-
-    # 计算每个五官的半径
-        mouth_radius = int(np.linalg.norm(mouth[6] - mouth[0]))
-        nose_radius = int(np.linalg.norm(nose[4] - nose[0]))
-        eye_radius = int(np.linalg.norm(left_eye[3] - left_eye[0]))
-
-# 获取人脸特征点，包括嘴巴、鼻子和眼睛
-    shape = predictor(gray, face)
-    shape = face_utils.shape_to_np(shape)
-    mouth_points = shape[48:68]
-    mouth_center = np.mean(mouth_points, axis=0)
-    mouth_radius = np.linalg.norm(mouth_points[0] - mouth_center)
-    nose_points = shape[27:36]
-    nose_center = np.mean(nose_points, axis=0)
-    nose_radius = np.linalg.norm(nose_points[0] - nose_center)
-    eye_points = np.vstack((shape[36:42], shape[42:48]))
-    eye_center = np.mean(eye_points, axis=0)
-    eye_radius = np.linalg.norm(eye_points[0] - eye_center)
-    face_features = [mouth_points, nose_points, eye_points]
-
-# 将每个五官的半径和中心点保存到一个列表中
-    radii = [mouth_radius, nose_radius, eye_radius]
-    features = [face_features, radii]
-
-# 循环遍历每一个五官，进行交换
-    for i in range(len(features)):
-    # 获取要交换的五官
-        feature1 = features[i]
-        feature2 = features[(i+1) % len(features)]
-
-    # 计算要交换的中心点和半径
-        center1, center2 = feature1[0], feature2[0]
-        radius1, radius2 = feature1[1], feature2[1]
-
-    # 计算旋转角度和缩放比例
-        angle = np.arctan2(center2[1]-center1[1], center2[0]-center1[0])
-        scale = np.linalg.norm(radius2) / np.linalg.norm(radius1)
-
-    # 构造仿射变换矩阵
-        M = cv2.getRotationMatrix2D(tuple(center1), angle*180/np.pi, scale)
-
-    # 对当前五官进行仿射变换
-        feature1_points = np.array(
-            [np.dot(M, (x, y, 1)).astype(int)[:2] for x, y in feature1[0]])
-        feature1_radius = np.array(radius1) * scale
-
-    # 将交换后的五官绘制在图像上
-        cv2.fillPoly(frame, [feature1_points], (0, 0, 0))
-        cv2.circle(frame, tuple(feature1[0][0]), int(
-        feature1_radius), (0, 0, 255), -1)
-
-
-
-# 显示当前帧的图像
-        cv2.imshow('frame', frame)
-
-# 按下q键退出循环
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
 # 释放资源
-        cap.release()
-        cv2.destroyAllWindows()
+cap.release()
+out.release()
+cv2.destroyAllWindows()
