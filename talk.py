@@ -19,40 +19,40 @@ right_eye_points = list(range(36, 42))
 jaw_points = list(range(0, 17))
 
 # 将照片转换为灰度图
-gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+image = cv2.imread("/Users/caijionghui/Desktop/test/source.png")
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 # 使用人脸检测器检测人脸
-rects = detector(gray_img, 0)
+faces = detector(gray, 0)
 
 # 循环遍历每一个人脸
-for rect in rects:
-    # 使用关键点检测器检测关键点
-    shape = predictor(gray_img, rect)
-    points = shape.parts()
+for face in faces:
+        shape = predictor(gray, face)
+        points = shape.parts()
 
     # 将关键点转换为numpy数组
-    points = np.array([(p.x, p.y) for p in points])
+points = np.array([(p.x, p.y) for p in points])
 
     # 分别提取五官的关键点
-    mouth = points[mouth_points]
-    nose = points[nose_points]
-    left_eye = points[left_eye_points]
-    right_eye = points[right_eye_points]
-    jaw = points[jaw_points]
+mouth = points[mouth_points]
+nose = points[nose_points]
+left_eye = points[left_eye_points]
+right_eye = points[right_eye_points]
+jaw = points[jaw_points]
 
     # 计算每个五官的中心点
-    mouth_center = np.mean(mouth, axis=0)
-    nose_center = np.mean(nose, axis=0)
-    left_eye_center = np.mean(left_eye, axis=0)
-    right_eye_center = np.mean(right_eye, axis=0)
+mouth_center = np.mean(mouth, axis=0)
+nose_center = np.mean(nose, axis=0)
+left_eye_center = np.mean(left_eye, axis=0)
+right_eye_center = np.mean(right_eye, axis=0)
 
     # 将每个五官的中心点保存到一个列表中
-    centers = [mouth_center, nose_center, left_eye_center, right_eye_center]
+centers = [mouth_center, nose_center, left_eye_center, right_eye_center]
 
     # 计算每个五官的半径
-    mouth_radius = int(np.linalg.norm(mouth[6] - mouth[0]))
-    nose_radius = int(np.linalg.norm(nose[4] - nose[0]))
-    eye_radius = int(np.linalg.norm(left_eye[3] - left_eye[0]))
+mouth_radius = int(np.linalg.norm(mouth[6] - mouth[0]))
+nose_radius = int(np.linalg.norm(nose[4] - nose[0]))
+eye_radius = int(np.linalg.norm(left_eye[3] - left_eye[0]))
 
 # 循环遍历视频的每一帧
 while cap.isOpened():
