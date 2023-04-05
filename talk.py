@@ -99,11 +99,22 @@ while cap.isOpened():
         eye_radius = int(np.linalg.norm(left_eye[3] - left_eye[0]))
 
 # 获取人脸特征点，包括嘴巴、鼻子和眼睛
-        face_features = face_utils.get_face_features(shape)
+    shape = predictor(gray, face)
+    shape = face_utils.shape_to_np(shape)
+    mouth_points = shape[48:68]
+    mouth_center = np.mean(mouth_points, axis=0)
+    mouth_radius = np.linalg.norm(mouth_points[0] - mouth_center)
+    nose_points = shape[27:36]
+    nose_center = np.mean(nose_points, axis=0)
+    nose_radius = np.linalg.norm(nose_points[0] - nose_center)
+    eye_points = np.vstack((shape[36:42], shape[42:48]))
+    eye_center = np.mean(eye_points, axis=0)
+    eye_radius = np.linalg.norm(eye_points[0] - eye_center)
+    face_features = [mouth_points, nose_points, eye_points]
 
 # 将每个五官的半径和中心点保存到一个列表中
-        radii = [mouth_radius, nose_radius, eye_radius]
-        features = [face_features, radii]
+    radii = [mouth_radius, nose_radius, eye_radius]
+    features = [face_features, radii]
 
 # 循环遍历每一个五官，进行交换
     for i in range(len(features)):
@@ -131,6 +142,7 @@ while cap.isOpened():
         cv2.fillPoly(frame, [feature1_points], (0, 0, 0))
         cv2.circle(frame, tuple(feature1[0][0]), int(
         feature1_radius), (0, 0, 255), -1)
+
 
 
 # 显示当前帧的图像
