@@ -2,106 +2,84 @@
 Author: twjohnsontsai twjohnsontsai@icloud.com
 Date: 2023-03-27 12:00:07
 LastEditors: twjohnsontsai twjohnsontsai@icloud.com
-LastEditTime: 2023-04-01 10:12:19
-FilePath: /test/talk.py
+LastEditTime: 2023-04-05 13:58:28
+FilePath: /talk/talk.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
-import os
-import cv2
 import dlib
+import cv2
 import numpy as np
 
-# 获取当前脚本所在目录的绝对路径
-base_path = os.path.dirname(os.path.abspath(__file__))
-
-# 加载面部关键点检测器模型
-predictor_path = os.path.join(base_path, "shape_predictor_68_face_landmarks.dat")
-predictor = dlib.shape_predictor(predictor_path)
-
-# 加载人脸检测器模型
+# 加载人脸检测器和关键点检测器
 detector = dlib.get_frontal_face_detector()
+predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
-# 读取目标照片和视频（档案名称固定，路径固定都在目录下）
-img = cv2.imread(os.path.join(base_path, "source.png"))
-cap = cv2.VideoCapture(os.path.join(base_path, "driving.mp4"))
+# 读取照片和视频文件
+img = cv2.imread("input_image.jpg")
+cap = cv2.VideoCapture("input_video.mp4")
 
-# 获取目标照片的面部关键点
+# 定义五官交换的点
+mouth_points = list(range(48, 61))
+nose_points = list(range(27, 36))
+left_eye_points = list(range(42, 48))
+right_eye_points = list(range(36, 42))
+jaw_points = list(range(0, 17))
+
+# 将照片转换为灰度图
 gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# 使用人脸检测器检测人脸
 rects = detector(gray_img, 0)
-if len(rects) == 0:
-    print("No face detected in target image")
-    exit()
-face_landmarks = predictor(gray_img, rects[0]).parts()
 
-# 将面部关键点转换为numpy数组
-points = []
-for p in face_landmarks:
-    points.append([p.x, p.y])
-points = np.array(points)
+# 循环遍历每一个人脸
+for rect in rects:
+    # 使用关键点检测器检测关键点
+    shape = predictor(gray_img, rect)
+    points = shape.parts()
 
-# 获取视频文件的一些参数
-fps = int(cap.get(cv2.CAP_PROP_FPS))
-width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    # 将关键点转换为numpy数组
+    points = np.array([(p.x, p.y) for p in points])
 
-# 初始化输出视频文件的相关参数
-out_video_path = os.path.join(base_path, "result.mp4")
-out_video = cv2.VideoWriter(out_video_path, fourcc, fps, (img.shape[1], img.shape[0]))
+    # 分别提取五官的关键点
+    mouth = points[mouth_points]
+    nose = points[nose_points]
+    left_eye = points[left_eye_points]
+    right_eye = points[right_eye_points]
+    jaw = points[jaw_points]
 
-# 处理视频每一帧
+    # 计算每个五官的中心点
+    mouth_center = np.mean(mouth, axis=0)
+    nose_center = np.mean(nose, axis=0)
+    left_eye_center = np.mean(left_eye, axis=0)
+    right_eye_center = np.mean(right_eye, axis=0)
+
+    # 将每个五官的中心点保存到一个列表中
+    centers = [mouth_center, nose_center, left_eye_center, right_eye_center]
+
+    # 计算每个五官的半径
+    mouth_radius = int(np.linalg.norm(mouth[6] - mouth[0]))
+    nose_radius = int(np.linalg.norm(nose[4] - nose[0]))
+    eye_radius = int(np.linalg.norm(left_eye[3] - left_eye[0]))
+
+# 循环遍历视频的每一帧
 while cap.isOpened():
     ret, frame = cap.read()
+
+    # 如果读取视频失败，则退出循环
     if not ret:
         break
 
-    # 获取当前帧的面部关键点
+    # 将图像转换为灰度图
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # 使用人脸检测器检测人脸
     rects = detector(gray_frame, 0)
-    if len(rects) == 0:
-        out_video.write(frame)
-        continue
-    face_landmarks = predictor(gray_frame, rects[0]).parts()
 
-    # 将面部关键点转换为numpy数组
-    points_src = []
-    for p in face_landmarks:
-        points_src.append([p.x, p.y])
-    points_src = np.array(points_src)
+    # 循环遍历每一个人脸
+    for rect in rects:
+        # 使用关键点检测器检测关键点
+        shape = predictor(gray_frame, rect)
+        points = shape.parts()
 
-    # 进行仿射变换
-    M, _ = cv2.estimateAffinePartial2D(points_src, points, method=cv2.LMEDS)
-    if M is None:
-        out_video.write(frame)
-        continue
-    face = cv2.warpAffine(frame, M, (img.shape[1], img.shape[0]),
- None, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
-
-    # 在目标照片中抠出脸部区域
-    mask = np.zeros_like(img)
-    cv2.fillConvexPoly(mask, cv2.convexHull(points), (255, 255, 255))
-    mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-    face_masked = cv2.bitwise_and(img, img, mask=mask)
-
-    # 将脸部区域从目标照片中剪裁出来
-
-
-# 将脸部区域从目标照片中剪裁出来
-    x, y, w, h = cv2.boundingRect(np.array([points]))
-    face_region = face_masked[y:y + h, x:x + w]
-
-# 进行仿射变换
-    face_region_aligned = cv2.warpAffine(face_region, M, (frame.shape[1], frame.shape[0]), None, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
-
-# 将融合后的脸部区域叠加到原视频帧上
-    mask = cv2.bitwise_not(mask)
-    frame_masked = cv2.bitwise_and(frame, frame, mask=mask)
-    frame_masked[y:y + h, x:x + w] = cv2.resize(face_region_aligned, (w, h))
-    out_video.write(frame_masked)
-
-
-
-    cap.release()
-    out_video.release()
-    cv2.destroyAllWindows()
-
+        # 将关键点转换为numpy数组
+        points = np.array([(p.x, p.y) for p in points])
