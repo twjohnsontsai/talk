@@ -2,7 +2,7 @@
 Author: twjohnsontsai twjohnsontsai@icloud.com
 Date: 2023-03-27 12:00:07
 LastEditors: twjohnsontsai twjohnsontsai@icloud.com
-LastEditTime: 2023-04-05 14:10:43
+LastEditTime: 2023-04-05 14:34:01
 FilePath: /talk/talk.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -84,3 +84,14 @@ while cap.isOpened():
 
         # 将关键点转换为numpy数组
         points = np.array([(p.x, p.y) for p in points])
+        # 省略代码......
+
+    # 将处理后的图像展示出来
+    cv2.imshow('result', frame)
+    # 按下 'q' 键退出循环
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# 释放视频捕获器和所有窗口
+cap.release()
+cv2.destroyAllWindows()
