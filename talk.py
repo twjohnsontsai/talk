@@ -98,36 +98,40 @@ while cap.isOpened():
         nose_radius = int(np.linalg.norm(nose[4] - nose[0]))
         eye_radius = int(np.linalg.norm(left_eye[3] - left_eye[0]))
 
-    # 将每个五官的半径和中心点保存到一个列表中
-        face_radii = [mouth_radius, nose_radius, eye_radius]
-        face_features = [centers, radii]
+# 获取人脸特征点，包括嘴巴、鼻子和眼睛
+        face_features = face_utils.get_face_features(shape)
 
-    # 循环遍历每一个五官，进行交换
-    for i in range(len(face_features)):
-        # 获取要交换的五官
+# 将每个五官的半径和中心点保存到一个列表中
+        radii = [mouth_radius, nose_radius, eye_radius]
+        features = [face_features, radii]
+
+# 循环遍历每一个五官，进行交换
+    for i in range(len(features)):
+    # 获取要交换的五官
         feature1 = features[i]
-        feature2 = features[(i+1) % len(face_features)]
+        feature2 = features[(i+1) % len(features)]
 
-        # 计算要交换的中心点和半径
+    # 计算要交换的中心点和半径
         center1, center2 = feature1[0], feature2[0]
         radius1, radius2 = feature1[1], feature2[1]
 
-        # 计算旋转角度和缩放比例
+    # 计算旋转角度和缩放比例
         angle = np.arctan2(center2[1]-center1[1], center2[0]-center1[0])
         scale = np.linalg.norm(radius2) / np.linalg.norm(radius1)
 
-        # 构造仿射变换矩阵
+    # 构造仿射变换矩阵
         M = cv2.getRotationMatrix2D(tuple(center1), angle*180/np.pi, scale)
 
-        # 对当前五官进行仿射变换
+    # 对当前五官进行仿射变换
         feature1_points = np.array(
             [np.dot(M, (x, y, 1)).astype(int)[:2] for x, y in feature1[0]])
         feature1_radius = np.array(radius1) * scale
 
-        # 将交换后的五官绘制在图像上
+    # 将交换后的五官绘制在图像上
         cv2.fillPoly(frame, [feature1_points], (0, 0, 0))
         cv2.circle(frame, tuple(feature1[0][0]), int(
-            feature1_radius), (0, 0, 255), -1)
+        feature1_radius), (0, 0, 255), -1)
+
 
 # 显示当前帧的图像
         cv2.imshow('frame', frame)
